@@ -13,11 +13,11 @@ import (
 const (
 	boardWidth  = 80
 	boardHeight = 60
-	pixelScale  = 10
+	pixelScale  = 15
 )
 
-var board Board
-var nextBoard Board
+var board, nextBoard Board
+var running = true
 
 func setup() {
 	p5.Canvas(boardWidth*pixelScale, boardHeight*pixelScale)
@@ -26,16 +26,25 @@ func setup() {
 }
 
 func draw() {
+	handleInput()
 	drawBoard()
-	time.Sleep(time.Millisecond * 50)
-	updateBoard()
+	if running {
+		updateBoard()
+	}
 }
 
 func setInitialBoard() {
 	args := os.Args[1:]
-	fileName := "Empty"
-	if len(args) == 1 {
-		fileName = args[0]
+	var fileName string
+
+	for _, arg := range args {
+		switch arg[0] {
+		case 'b':
+			fileName = arg[2:]
+		}
+	}
+	if fileName == "" {
+		fileName = getBoardName()
 	}
 
 	file, err := os.Open(fmt.Sprintf("Boards/%s.txt", fileName))
