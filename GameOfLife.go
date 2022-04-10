@@ -5,19 +5,21 @@ import (
 	"fmt"
 	"image/color"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/go-p5/p5"
 )
 
 const (
-	boardWidth  = 80
-	boardHeight = 60
+	boardWidth  = 100
+	boardHeight = 80
 	pixelScale  = 15
 )
 
 var board, nextBoard Board
 var running = true
+var threadCount = 5
 
 func setup() {
 	p5.Canvas(boardWidth*pixelScale, boardHeight*pixelScale)
@@ -29,8 +31,16 @@ func draw() {
 	handleInput()
 	drawBoard()
 	if running {
-		updateBoard()
+		updateBoardCocurrent(threadCount)
 	}
+}
+
+func strToInt(str string) int {
+	val, err := strconv.Atoi(str)
+	if err != nil {
+		panic(err)
+	}
+	return val
 }
 
 func setInitialBoard() {
@@ -41,6 +51,8 @@ func setInitialBoard() {
 		switch arg[0] {
 		case 'b':
 			fileName = arg[2:]
+		case 't':
+			threadCount = strToInt(arg[2:])
 		}
 	}
 	if fileName == "" {

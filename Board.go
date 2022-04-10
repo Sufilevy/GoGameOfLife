@@ -1,11 +1,14 @@
 package main
 
 import (
-	"github.com/go-p5/p5"
+	"fmt"
 	"image/color"
+	"sync"
+
+	"github.com/go-p5/p5"
 )
 
-func index(x int, y int) int {
+func index(x, y int) int {
 	return y*boardWidth + x
 }
 
@@ -15,11 +18,11 @@ func cords(i int) (int, int) {
 
 type Board [boardWidth * boardHeight]bool
 
-func (b *Board) getPixel(x int, y int) bool {
+func (b *Board) getPixel(x, y int) bool {
 	return b[(y*boardWidth)+x]
 }
 
-func (b *Board) setPixel(x int, y int, value bool) {
+func (b *Board) setPixel(x, y int, value bool) {
 	b[(y*boardWidth)+x] = value
 }
 
@@ -41,38 +44,38 @@ func drawBoard() {
 	}
 }
 
-func getNeighbourCount(x int, y int) int {
+func getNeighbourCount(x, y int) int {
 	var neighbourCount int
 
 	if x > 0 {
-		if board.getPixel(x-1, y) {
+		if board[index(x-1, y)] {
 			neighbourCount++
 		}
-		if y > 0 && board.getPixel(x-1, y-1) {
+		if y > 0 && board[index(x-1, y-1)] {
 			neighbourCount++
 		}
 	}
 	if x < boardWidth-1 {
-		if board.getPixel(x+1, y) {
+		if board[index(x+1, y)] {
 			neighbourCount++
 		}
-		if y < boardHeight-1 && board.getPixel(x+1, y+1) {
+		if y < boardHeight-1 && board[index(x+1, y+1)] {
 			neighbourCount++
 		}
 	}
 	if y > 0 {
-		if board.getPixel(x, y-1) {
+		if board[index(x, y-1)] {
 			neighbourCount++
 		}
-		if x < boardWidth-1 && board.getPixel(x+1, y-1) {
+		if x < boardWidth-1 && board[index(x+1, y-1)] {
 			neighbourCount++
 		}
 	}
 	if y < boardHeight-1 {
-		if board.getPixel(x, y+1) {
+		if board[index(x, y+1)] {
 			neighbourCount++
 		}
-		if x > 0 && board.getPixel(x-1, y+1) {
+		if x > 0 && board[index(x-1, y+1)] {
 			neighbourCount++
 		}
 	}
@@ -80,11 +83,11 @@ func getNeighbourCount(x int, y int) int {
 	return neighbourCount
 }
 
-func shouldLive(x int, y int) bool {
+func shouldLive(x, y int) bool {
 	shouldLive := false
 
 	livingNeighbours := getNeighbourCount(x, y)
-	isAlive := board.getPixel(x, y)
+	isAlive := board[index(x, y)]
 
 	if isAlive {
 		switch {
@@ -106,11 +109,27 @@ func shouldLive(x int, y int) bool {
 	return shouldLive
 }
 
-func updateBoard() {
-	for y := 0; y < boardHeight; y++ {
-		for x := 0; x < boardWidth; x++ {
-			nextBoard.setPixel(x, y, shouldLive(x, y))
-		}
+func updateBoardCocurrent(numRoutines int) {
+	var wg sync.WaitGroup
+	routineSize := len(board) / numRoutines
+
+	for i := 0; i < numRoutines; i++ {
+		wg.Add(1)
+		go updateBoardPart(i*routineSize, i*routineSize+routineSize, &wg)
 	}
+
+	wg.Wait()
 	board = nextBoard
+	println("")
+}
+
+func updateBoardPart(start, end int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	defer fmt.Printf("Done %d - %d\n", start, end)
+
+	for i := start; i < end; i++ {
+		x, y := cords(i)
+
+		nextBoard[index(x, y)] = shouldLive(x, y)
+	}
 }
